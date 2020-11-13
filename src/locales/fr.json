@@ -1,0 +1,18 @@
+{
+  "contact": {
+    "option1": "Me contacter",
+    "option2": "Envoyer la documentation",
+    "option3": "Envoyer un bulletin de versement",
+    "field1": "Prénom",
+    "field2": "Nom",
+    "field3": "Email",
+    "field4": "Téléphone",
+    "field5": "Commentaires",
+    "submit": "Envoyer"
+  },
+  "form": {
+    "required": "Champ requis",
+    "email": "Email invalide",
+    "success": "Merci ! Votre message nous a bien été envoyé."
+  }
+}
