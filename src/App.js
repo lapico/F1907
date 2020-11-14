@@ -211,6 +211,46 @@ const SubNav = ({pages}) => {
   );
 };
 
+const Bar = ({children}) => {
+  const classes = useStyles();
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Box className={classes.bar}>
+      <Box
+        {...borderB}
+        py={2}
+        height={theme.spacing(10) + 1}
+        display="flex"
+        flexDirection="row"
+      >
+        <IconButton
+          disableRipple
+          onClick={() => setOpen(!open)}
+          className={clsx(classes.expand, {
+            [classes.expandOpen]: open,
+          })}
+        >
+          <ExpandMoreIcon />
+        </IconButton>
+      </Box>
+      <Collapse in={open} timeout="auto" unmountOnExit>
+        <Fade in={open} {...(open ? {timeout: 1000} : {})}>
+          <Box
+            {...borderB}
+            p={2}
+            display="flex"
+            justifyContent="flex-end"
+            flexWrap="wrap"
+          >
+            {children}
+          </Box>
+        </Fade>
+      </Collapse>
+    </Box>
+  );
+};
+
 const Footer = () => {
   const size = useWindowSize();
 
@@ -488,6 +528,7 @@ const Contact = page => {
 };
 
 const Temples = ({path}) => {
+  const classes = useStyles();
   const [datas, setDatas] = useState();
 
   useEffect(() => {
@@ -495,104 +536,42 @@ const Temples = ({path}) => {
   }, []); // eslint-disable-line
 
   if (!datas) return null;
+  const image = datas.image_map[0];
+  const markers = datas.markers_map;
   console.log(datas);
+
+  const locations = markers.map(marker => ({
+    x: (image.origin.width / 100) * marker.x - image.origin.width / 2 - 20,
+    y: (image.origin.height / 100) * marker.y - image.origin.height / 2 - 20,
+  }));
+  console.log(locations);
 
   return (
     <>
-      <Bar />
-      <Box py={4}>
-        <List items={datas.children} />
-        <Map image={datas.image_map[0]} />
-      </Box>
-    </>
-  );
-};
-
-const Bar = () => {
-  const classes = useStyles();
-  const [open, setOpen] = useState(false);
-
-  return (
-    <Box className={classes.bar}>
-      <Box
-        {...borderB}
-        py={2}
-        height={theme.spacing(10) + 1}
-        display="flex"
-        flexDirection="row"
-      >
-        <IconButton
-          disableRipple
-          onClick={() => setOpen(!open)}
-          className={clsx(classes.expand, {
-            [classes.expandOpen]: open,
-          })}
-        >
-          <ExpandMoreIcon />
-        </IconButton>
-      </Box>
-      <Collapse in={open} timeout="auto" unmountOnExit>
-        <Fade in={open} {...(open ? {timeout: 1000} : {})}>
-          <Box {...borderB} p={2} display="flex" justifyContent="flex-end">
-            <Box mr={2}>
-              <FormControlLabel
-                label={
-                  <Typography className={classes.manier}>CARTE</Typography>
-                }
-                control={<Switch color="primary" />}
-                labelPlacement="start"
-                edge="start"
-              />
-            </Box>
-            <Box>
-              <FormControlLabel
-                label={
-                  <Typography className={classes.manier}>GRILLE</Typography>
-                }
-                control={<Switch color="primary" />}
-                labelPlacement="start"
-                edge="start"
-              />
-            </Box>
-          </Box>
-        </Fade>
-      </Collapse>
-    </Box>
-  );
-};
-
-const Map = ({image}) => {
-  const size = useWindowSize();
-
-  if (!image) return null;
-
-  const width = size.width;
-  const height = size.height;
-  const portrait = width / height < 1.0;
-  const rotation = portrait ? '-90deg' : '0deg';
-  const scale = portrait
-    ? width / image.origin.height
-    : height / image.origin.height;
-
-  return (
-    <Box
-      position="fixed"
-      top={0}
-      left={0}
-      width={width}
-      height={height}
-      zIndex={-10}
-    >
-      <div
-        style={{
-          width: image.origin.width,
-          height: image.origin.height,
-          position: 'relative',
-          top: '50%',
-          left: '50%',
-          transform: `translate(-50%, -50%) scale(${scale}) rotate(${rotation})`,
-          transformOrigin: 'center center',
-        }}
+      <Bar>
+        <FormControlLabel
+          label={<Typography className={classes.manier}>CARTE</Typography>}
+          control={<Switch color="primary" />}
+          labelPlacement="start"
+          edge="start"
+        />
+        <FormControlLabel
+          label={<Typography className={classes.manier}>GRILLE</Typography>}
+          control={<Switch color="primary" />}
+          labelPlacement="start"
+          edge="start"
+        />
+      </Bar>
+      <List items={datas.children} />
+      <LetterBox width={image.origin.width} height={image.origin.height}>
+        {locations.map((location, idx) => {
+          return <Location key={idx} location={location} />;
+        })}
+      </LetterBox>
+      <LetterBox
+        width={image.origin.width}
+        height={image.origin.height}
+        zIndex={-10}
       >
         <img
           alt="map"
@@ -602,20 +581,64 @@ const Map = ({image}) => {
             height: '100%',
           }}
         />
-      </div>
-    </Box>
+      </LetterBox>
+    </>
   );
 };
 
 const List = ({items}) => {
   return (
-    <>
+    <Box py={4} width={{md: '40%'}}>
       {items.map(item => (
         <Typography key={item.name} variant="h3">
           {item.title}
         </Typography>
       ))}
-    </>
+    </Box>
+  );
+};
+
+const Location = ({location}) => {
+  const classes = useStyles();
+  const {x, y} = location;
+
+  const style = {transform: `translate(${x}px, ${y}px)`};
+
+  return <div className={classes.dot} style={style} />;
+};
+
+const LetterBox = ({children, width, height, ...props}) => {
+  const classes = useStyles();
+  const size = useWindowSize();
+
+  const portrait = size.width / size.height < 1.0;
+  const rotation = portrait ? '-90deg' : '0deg';
+  const scale = portrait ? size.width / height : size.height / height;
+
+  return (
+    <Box
+      position="fixed"
+      top={0}
+      left={0}
+      width={size.width}
+      height={size.height}
+      className={classes.letterbox}
+      {...props}
+    >
+      <div
+        style={{
+          width: width,
+          height: height,
+          position: 'relative',
+          top: '50%',
+          left: '50%',
+          transform: `translate(-50%, -50%) scale(${scale}) rotate(${rotation})`,
+          transformOrigin: 'center center',
+        }}
+      >
+        {children}
+      </div>
+    </Box>
   );
 };
 
@@ -681,6 +704,21 @@ const useStyles = makeStyles(theme => ({
   },
   expandOpen: {
     transform: 'rotate(180deg)',
+  },
+  letterbox: {
+    pointerEvents: 'none',
+  },
+  dot: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    width: theme.spacing(),
+    height: theme.spacing(),
+    margin: theme.spacing(2),
+    borderRadius: '50%',
+    backgroundColor: 'black',
+    cursor: 'pointer',
+    pointerEvents: 'all',
   },
   contact: {
     '& form > div > div': {
