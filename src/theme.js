@@ -35,6 +35,9 @@ const shapiroT = {
 
 const light = {
   type: 'light',
+  background: {
+    default: '#fff',
+  },
 };
 
 const theme = createMuiTheme({

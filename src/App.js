@@ -10,16 +10,21 @@ import CssBaseline from '@material-ui/core/CssBaseline';
 import Box from '@material-ui/core/Box';
 import Tabs from '@material-ui/core/Tabs';
 import Tab from '@material-ui/core/Tab';
+import Collapse from '@material-ui/core/Collapse';
+import Fade from '@material-ui/core/Fade';
+import IconButton from '@material-ui/core/IconButton';
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import Typography from '@material-ui/core/Typography';
 import TextField from '@material-ui/core/TextField';
 import Checkbox from '@material-ui/core/Checkbox/Checkbox';
+import Switch from '@material-ui/core/Switch';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import Button from '@material-ui/core/Button';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import clsx from 'clsx';
 import {
   BrowserRouter,
-  Switch,
+  Switch as Routes,
   Route,
   Redirect,
   NavLink,
@@ -58,7 +63,7 @@ const App = () => {
         <CssBaseline />
         <DataContextProvider>
           <Layout datas={datas}>
-            <Switch>
+            <Routes>
               <Route path="/" exact>
                 <Home datas={datas} />
               </Route>
@@ -68,7 +73,7 @@ const App = () => {
                 </Route>
               ))}
               <Redirect to="/" />
-            </Switch>
+            </Routes>
           </Layout>
         </DataContextProvider>
       </BrowserRouter>
@@ -184,15 +189,7 @@ const SubNav = ({pages}) => {
   };
 
   return (
-    <Box
-      py={2}
-      border={1}
-      borderTop={0}
-      borderLeft={0}
-      borderRight={0}
-      borderColor="divider"
-      className={classes.subnav}
-    >
+    <Box {...borderB} py={2} className={classes.subnav}>
       <Tabs
         variant="scrollable"
         textColor="primary"
@@ -217,7 +214,7 @@ const SubNav = ({pages}) => {
 const Footer = () => {
   const size = useWindowSize();
 
-  const footerHeight = useMemo(
+  const height = useMemo(
     () => ({
       xs: size.height - theme.spacing(12),
       md: size.height - theme.spacing(20),
@@ -227,7 +224,7 @@ const Footer = () => {
 
   if (!size.height) return null;
 
-  return <Box height={footerHeight} {...borderT} />;
+  return <Box mt="-1px" height={height} {...borderT} />;
 };
 
 // ——————————————————————————————————————————————————————————————————————————————————— PAGES
@@ -263,9 +260,9 @@ const Home = ({datas}) => {
       width="100%"
       height="100%"
       pt={2}
+      zIndex={-10}
       pb={{xs: 2, md: 10}}
       px={{xs: 2, md: 12}}
-      zIndex={-10}
       className={classes.container}
     >
       <Box
@@ -502,7 +499,122 @@ const Temples = ({path}) => {
 
   return (
     <>
-      <div>YO</div>
+      <Bar />
+      <Box py={4}>
+        <List items={datas.children} />
+        <Map image={datas.image_map[0]} />
+      </Box>
+    </>
+  );
+};
+
+const Bar = () => {
+  const classes = useStyles();
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Box className={classes.bar}>
+      <Box
+        {...borderB}
+        py={2}
+        height={theme.spacing(10) + 1}
+        display="flex"
+        flexDirection="row"
+      >
+        <IconButton
+          disableRipple
+          onClick={() => setOpen(!open)}
+          className={clsx(classes.expand, {
+            [classes.expandOpen]: open,
+          })}
+        >
+          <ExpandMoreIcon />
+        </IconButton>
+      </Box>
+      <Collapse in={open} timeout="auto" unmountOnExit>
+        <Fade in={open} {...(open ? {timeout: 1000} : {})}>
+          <Box {...borderB} p={2} display="flex" justifyContent="flex-end">
+            <Box mr={2}>
+              <FormControlLabel
+                label={
+                  <Typography className={classes.manier}>CARTE</Typography>
+                }
+                control={<Switch color="primary" />}
+                labelPlacement="start"
+                edge="start"
+              />
+            </Box>
+            <Box>
+              <FormControlLabel
+                label={
+                  <Typography className={classes.manier}>GRILLE</Typography>
+                }
+                control={<Switch color="primary" />}
+                labelPlacement="start"
+                edge="start"
+              />
+            </Box>
+          </Box>
+        </Fade>
+      </Collapse>
+    </Box>
+  );
+};
+
+const Map = ({image}) => {
+  const size = useWindowSize();
+
+  if (!image) return null;
+
+  const width = size.width;
+  const height = size.height;
+  const portrait = width / height < 1.0;
+  const rotation = portrait ? '-90deg' : '0deg';
+  const scale = portrait
+    ? width / image.origin.height
+    : height / image.origin.height;
+
+  return (
+    <Box
+      position="fixed"
+      top={0}
+      left={0}
+      width={width}
+      height={height}
+      zIndex={-10}
+    >
+      <div
+        style={{
+          width: image.origin.width,
+          height: image.origin.height,
+          position: 'relative',
+          top: '50%',
+          left: '50%',
+          transform: `translate(-50%, -50%) scale(${scale}) rotate(${rotation})`,
+          transformOrigin: 'center center',
+        }}
+      >
+        <img
+          alt="map"
+          src={image.origin.httpUrl}
+          style={{
+            width: '100%',
+            height: '100%',
+          }}
+        />
+      </div>
+    </Box>
+  );
+};
+
+const List = ({items}) => {
+  return (
+    <>
+      {items.map(item => (
+        <Typography key={item.name} variant="h3">
+          {item.title}
+        </Typography>
+      ))}
     </>
   );
 };
@@ -539,19 +651,36 @@ const useStyles = makeStyles(theme => ({
   bigtext: {
     lineHeight: 1.1,
   },
+  active: {
+    color: theme.palette.primary.main,
+  },
   nav: {
     textDecoration: 'none',
     '&:hover': {
       color: theme.palette.primary.main,
     },
   },
-  active: {
-    color: theme.palette.primary.main,
-  },
   subnav: {
     position: 'sticky',
     top: 0,
     backgroundColor: theme.palette.background.default,
+  },
+  bar: {
+    position: 'sticky',
+    top: 0,
+  },
+  expand: {
+    transform: 'rotate(0deg)',
+    marginLeft: 'auto',
+    transition: theme.transitions.create('transform', {
+      duration: theme.transitions.duration.shortest,
+    }),
+    '&:hover': {
+      backgroundColor: 'transparent',
+    },
+  },
+  expandOpen: {
+    transform: 'rotate(180deg)',
   },
   contact: {
     '& form > div > div': {
