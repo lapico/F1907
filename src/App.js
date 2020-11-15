@@ -7,20 +7,27 @@ import React, {
 } from 'react';
 import {ThemeProvider, makeStyles} from '@material-ui/core/styles';
 import CssBaseline from '@material-ui/core/CssBaseline';
+import useMediaQuery from '@material-ui/core/useMediaQuery';
 import Box from '@material-ui/core/Box';
+import Grid from '@material-ui/core/Grid';
 import Tabs from '@material-ui/core/Tabs';
 import Tab from '@material-ui/core/Tab';
 import Collapse from '@material-ui/core/Collapse';
 import Fade from '@material-ui/core/Fade';
+import Slide from '@material-ui/core/Slide';
 import IconButton from '@material-ui/core/IconButton';
-import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import Typography from '@material-ui/core/Typography';
 import TextField from '@material-ui/core/TextField';
 import Checkbox from '@material-ui/core/Checkbox/Checkbox';
 import Switch from '@material-ui/core/Switch';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import Button from '@material-ui/core/Button';
+import ToggleButton from '@material-ui/lab/ToggleButton';
+import ToggleButtonGroup from '@material-ui/lab/ToggleButtonGroup';
 import CircularProgress from '@material-ui/core/CircularProgress';
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
+import ViewListIcon from '@material-ui/icons/ViewList';
+import ViewModuleIcon from '@material-ui/icons/ViewModule';
 import clsx from 'clsx';
 import {
   BrowserRouter,
@@ -211,7 +218,7 @@ const SubNav = ({pages}) => {
   );
 };
 
-const Bar = ({children}) => {
+const Bar = ({content, children}) => {
   const classes = useStyles();
   const [open, setOpen] = useState(false);
 
@@ -224,6 +231,7 @@ const Bar = ({children}) => {
         display="flex"
         flexDirection="row"
       >
+        {content()}
         <IconButton
           disableRipple
           onClick={() => setOpen(!open)}
@@ -247,6 +255,57 @@ const Bar = ({children}) => {
           </Box>
         </Fade>
       </Collapse>
+    </Box>
+  );
+};
+
+const LetterBox = ({children, size, width, height, limits, ...props}) => {
+  const classes = useStyles();
+  const sm = useMediaQuery(theme.breakpoints.down('sm'));
+
+  const minx = limits.minx;
+  const maxx = limits.maxx;
+  const miny = limits.miny;
+  const maxy = limits.maxy;
+
+  const sizex = maxx - minx;
+  const sizey = maxy - miny;
+  const px = per => (width / 100) * per;
+  const py = per => (height / 100) * per;
+  const margin = 48;
+  const scalew = size.width / (sm ? px(sizex) + margin : width);
+  const scaleh = size.height / (sm ? py(sizey) + margin : height);
+
+  const scale = Math.min(scalew, scaleh);
+  const centerx = (50 - (minx + sizex / 2)) * scale;
+  const centery = (50 - (miny + sizey / 2)) * scale;
+  const diffy =
+    height * scale < size.height ? (size.height - height * scale) / 2 : 0;
+
+  const transform = `translateY(${-diffy}px) translate(${centerx}%, ${centery}%) scale(${scale})`;
+
+  return (
+    <Box
+      position="fixed"
+      top={0}
+      left={0}
+      width={size.width}
+      height={size.height}
+      display="flex"
+      alignItems="center"
+      justifyContent="center"
+      className={classes.letterbox}
+      {...props}
+    >
+      <div
+        style={{
+          width: width,
+          height: height,
+          transform: transform,
+        }}
+      >
+        {children}
+      </div>
     </Box>
   );
 };
@@ -529,7 +588,18 @@ const Contact = page => {
 
 const Temples = ({path}) => {
   const classes = useStyles();
+  const {t} = useTranslation();
+  const size = useWindowSize();
   const [datas, setDatas] = useState();
+  const [view, setView] = useState();
+
+  const height = useMemo(
+    () => ({
+      xs: size.height - theme.spacing(24),
+      md: size.height - theme.spacing(30),
+    }),
+    [size]
+  );
 
   useEffect(() => {
     (async () => setDatas(await read(`${path}?children=true`)))();
@@ -538,106 +608,99 @@ const Temples = ({path}) => {
   if (!datas) return null;
   const image = datas.image_map[0];
   const markers = datas.markers_map;
-  console.log(datas);
 
   const locations = markers.map(marker => ({
     x: (image.origin.width / 100) * marker.x - image.origin.width / 2 - 20,
     y: (image.origin.height / 100) * marker.y - image.origin.height / 2 - 20,
   }));
-  console.log(locations);
+
+  const limits = markers.reduce(
+    (acc, cur) => ({
+      minx: cur.x < acc.minx ? cur.x : acc.minx,
+      maxx: cur.x > acc.maxx ? cur.x : acc.maxx,
+      miny: cur.y < acc.miny ? cur.y : acc.miny,
+      maxy: cur.y > acc.maxy ? cur.y : acc.maxy,
+    }),
+    {minx: 100, maxx: 0, miny: 100, maxy: 0}
+  );
 
   return (
-    <>
-      <Bar>
+    <Box minHeight={height}>
+      <Bar
+        content={() => (
+          <Box
+            display="flex"
+            flexGrow={1}
+            alignItems="center"
+            justifyContent="center"
+            marginLeft="48px"
+          >
+            <ToggleButtonGroup
+              exclusive
+              size="small"
+              value={view}
+              onChange={(event, next) => setView(next)}
+            >
+              <ToggleButton disableRipple value="list" aria-label="list">
+                <ViewListIcon />
+              </ToggleButton>
+              <ToggleButton disableRipple value="grid" aria-label="grid">
+                <ViewModuleIcon />
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
+        )}
+      >
         <FormControlLabel
-          label={<Typography className={classes.manier}>CARTE</Typography>}
-          control={<Switch color="primary" />}
-          labelPlacement="start"
-          edge="start"
-        />
-        <FormControlLabel
-          label={<Typography className={classes.manier}>GRILLE</Typography>}
+          label={
+            <Typography className={classes.manier}>
+              {t('temples.legend').toUpperCase()}
+            </Typography>
+          }
           control={<Switch color="primary" />}
           labelPlacement="start"
           edge="start"
         />
       </Bar>
-      <List items={datas.children} />
-      <LetterBox width={image.origin.width} height={image.origin.height}>
-        {locations.map((location, idx) => {
-          return <Location key={idx} location={location} />;
-        })}
-      </LetterBox>
+
+      <Slide direction="right" in={view === 'list'} mountOnEnter unmountOnExit>
+        <Box py={4} width={{md: '50%'}}>
+          {datas.children.map(item => (
+            <Typography key={item.name} variant="h3">
+              {item.title}
+            </Typography>
+          ))}
+        </Box>
+      </Slide>
+
+      <Slide direction="right" in={view === 'grid'} mountOnEnter unmountOnExit>
+        <Grid container spacing={3}>
+          {datas.children.map(item => (
+            <Grid key={item.name} item xs={12}>
+              <img alt={item.name} src={item.image_temple[0].origin.httpUrl} />
+            </Grid>
+          ))}
+        </Grid>
+      </Slide>
+
       <LetterBox
+        size={size}
         width={image.origin.width}
         height={image.origin.height}
+        limits={limits}
         zIndex={-10}
       >
-        <img
-          alt="map"
-          src={image.origin.httpUrl}
-          style={{
-            width: '100%',
-            height: '100%',
-          }}
-        />
+        <img alt="map" src={image.origin.httpUrl} />
+        {locations.map((location, idx) => {
+          const {x, y} = location;
+          const style = {transform: `translate(${x}px, ${y}px)`};
+          return (
+            <div key={idx} className={classes.dot} style={style}>
+              <div />
+            </div>
+          );
+        })}
       </LetterBox>
-    </>
-  );
-};
-
-const List = ({items}) => {
-  return (
-    <Box py={4} width={{md: '40%'}}>
-      {items.map(item => (
-        <Typography key={item.name} variant="h3">
-          {item.title}
-        </Typography>
-      ))}
-    </Box>
-  );
-};
-
-const Location = ({location}) => {
-  const classes = useStyles();
-  const {x, y} = location;
-
-  const style = {transform: `translate(${x}px, ${y}px)`};
-
-  return <div className={classes.dot} style={style} />;
-};
-
-const LetterBox = ({children, width, height, ...props}) => {
-  const classes = useStyles();
-  const size = useWindowSize();
-
-  const portrait = size.width / size.height < 1.0;
-  const rotation = portrait ? '-90deg' : '0deg';
-  const scale = portrait ? size.width / height : size.height / height;
-
-  return (
-    <Box
-      position="fixed"
-      top={0}
-      left={0}
-      width={size.width}
-      height={size.height}
-      className={classes.letterbox}
-      {...props}
-    >
-      <div
-        style={{
-          width: width,
-          height: height,
-          position: 'relative',
-          top: '50%',
-          left: '50%',
-          transform: `translate(-50%, -50%) scale(${scale}) rotate(${rotation})`,
-          transformOrigin: 'center center',
-        }}
-      >
-        {children}
-      </div>
     </Box>
   );
 };
@@ -712,13 +775,16 @@ const useStyles = makeStyles(theme => ({
     position: 'absolute',
     top: '50%',
     left: '50%',
-    width: theme.spacing(),
-    height: theme.spacing(),
-    margin: theme.spacing(2),
-    borderRadius: '50%',
-    backgroundColor: 'black',
-    cursor: 'pointer',
+    width: theme.spacing(5),
+    height: theme.spacing(5),
+    padding: theme.spacing(1.75),
     pointerEvents: 'all',
+    '& > div': {
+      width: '100%',
+      height: '100%',
+      borderRadius: '50%',
+      backgroundColor: theme.palette.divider,
+    },
   },
   contact: {
     '& form > div > div': {

@@ -1,4 +1,7 @@
 {
+  "temples": {
+    "legend": "Statuts"
+  },
   "contact": {
     "option1": "Me contacter",
     "option2": "Envoyer la documentation",
