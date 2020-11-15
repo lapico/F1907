@@ -9,12 +9,10 @@ import {ThemeProvider, makeStyles} from '@material-ui/core/styles';
 import CssBaseline from '@material-ui/core/CssBaseline';
 import useMediaQuery from '@material-ui/core/useMediaQuery';
 import Box from '@material-ui/core/Box';
-import Grid from '@material-ui/core/Grid';
 import Tabs from '@material-ui/core/Tabs';
 import Tab from '@material-ui/core/Tab';
 import Collapse from '@material-ui/core/Collapse';
 import Fade from '@material-ui/core/Fade';
-import Slide from '@material-ui/core/Slide';
 import IconButton from '@material-ui/core/IconButton';
 import Typography from '@material-ui/core/Typography';
 import TextField from '@material-ui/core/TextField';
@@ -22,12 +20,8 @@ import Checkbox from '@material-ui/core/Checkbox/Checkbox';
 import Switch from '@material-ui/core/Switch';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import Button from '@material-ui/core/Button';
-import ToggleButton from '@material-ui/lab/ToggleButton';
-import ToggleButtonGroup from '@material-ui/lab/ToggleButtonGroup';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
-import ViewListIcon from '@material-ui/icons/ViewList';
-import ViewModuleIcon from '@material-ui/icons/ViewModule';
 import clsx from 'clsx';
 import {
   BrowserRouter,
@@ -231,7 +225,7 @@ const Bar = ({content, children}) => {
         display="flex"
         flexDirection="row"
       >
-        {content()}
+        {content && content()}
         <IconButton
           disableRipple
           onClick={() => setOpen(!open)}
@@ -261,20 +255,20 @@ const Bar = ({content, children}) => {
 
 const LetterBox = ({children, size, width, height, limits, ...props}) => {
   const classes = useStyles();
-  const sm = useMediaQuery(theme.breakpoints.down('sm'));
+  const md = useMediaQuery(theme.breakpoints.down('md'));
 
+  const px = per => (width / 100) * per;
+  const py = per => (height / 100) * per;
   const minx = limits.minx;
   const maxx = limits.maxx;
   const miny = limits.miny;
   const maxy = limits.maxy;
 
+  const margin = 48;
   const sizex = maxx - minx;
   const sizey = maxy - miny;
-  const px = per => (width / 100) * per;
-  const py = per => (height / 100) * per;
-  const margin = 48;
-  const scalew = size.width / (sm ? px(sizex) + margin : width);
-  const scaleh = size.height / (sm ? py(sizey) + margin : height);
+  const scalew = size.width / (md ? px(sizex) + margin : width);
+  const scaleh = size.height / (md ? py(sizey) + margin : height);
 
   const scale = Math.min(scalew, scaleh);
   const centerx = (50 - (minx + sizex / 2)) * scale;
@@ -591,7 +585,8 @@ const Temples = ({path}) => {
   const {t} = useTranslation();
   const size = useWindowSize();
   const [datas, setDatas] = useState();
-  const [view, setView] = useState();
+  const [numbers, setNumbers] = useState(true);
+  const [images, setImages] = useState(true);
 
   const height = useMemo(
     () => ({
@@ -626,62 +621,90 @@ const Temples = ({path}) => {
 
   return (
     <Box minHeight={height}>
-      <Bar
-        content={() => (
-          <Box
-            display="flex"
-            flexGrow={1}
-            alignItems="center"
-            justifyContent="center"
-            marginLeft="48px"
-          >
-            <ToggleButtonGroup
-              exclusive
-              size="small"
-              value={view}
-              onChange={(event, next) => setView(next)}
-            >
-              <ToggleButton disableRipple value="list" aria-label="list">
-                <ViewListIcon />
-              </ToggleButton>
-              <ToggleButton disableRipple value="grid" aria-label="grid">
-                <ViewModuleIcon />
-              </ToggleButton>
-            </ToggleButtonGroup>
-          </Box>
-        )}
-      >
+      <Bar>
         <FormControlLabel
           label={
             <Typography className={classes.manier}>
-              {t('temples.legend').toUpperCase()}
+              {t('temples.numbers').toUpperCase()}
             </Typography>
           }
-          control={<Switch color="primary" />}
+          control={
+            <Switch
+              color="primary"
+              checked={numbers}
+              onChange={() => setNumbers(!numbers)}
+            />
+          }
+          labelPlacement="start"
+          edge="start"
+        />
+        <FormControlLabel
+          label={
+            <Typography className={classes.manier}>
+              {t('temples.images').toUpperCase()}
+            </Typography>
+          }
+          control={
+            <Switch
+              color="primary"
+              checked={images}
+              onChange={() => setImages(!images)}
+            />
+          }
           labelPlacement="start"
           edge="start"
         />
       </Bar>
 
-      <Slide direction="right" in={view === 'list'} mountOnEnter unmountOnExit>
-        <Box py={4} width={{md: '50%'}}>
-          {datas.children.map(item => (
-            <Typography key={item.name} variant="h3">
-              {item.title}
-            </Typography>
-          ))}
-        </Box>
-      </Slide>
-
-      <Slide direction="right" in={view === 'grid'} mountOnEnter unmountOnExit>
-        <Grid container spacing={3}>
-          {datas.children.map(item => (
-            <Grid key={item.name} item xs={12}>
-              <img alt={item.name} src={item.image_temple[0].origin.httpUrl} />
-            </Grid>
-          ))}
-        </Grid>
-      </Slide>
+      <Box py={4} width={{md: '50%'}}>
+        {datas.children.map((item, idx) => (
+          <Typography key={idx} variant="h3">
+            <Box display="flex" alignItems="center">
+              {images && (
+                <img
+                  alt={item.name}
+                  src={item.image_temple[0].origin.httpUrl}
+                  style={{height: '1em', marginRight: '.1em'}}
+                />
+              )}
+              {numbers && (
+                <div
+                  style={{
+                    width: '1em',
+                    height: '1em',
+                    display: 'inline-block',
+                    padding: '.1em',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: 'solid',
+                      borderRadius: '50%',
+                      borderWidth: '2px',
+                      borderColor: theme.palette.text.primary,
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: '.5em',
+                        lineHeight: '1em',
+                      }}
+                    >
+                      {idx + 1}
+                    </span>
+                  </div>
+                </div>
+              )}
+              <span>{item.title}</span>
+            </Box>
+          </Typography>
+        ))}
+      </Box>
 
       <LetterBox
         size={size}

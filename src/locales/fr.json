@@ -1,6 +1,7 @@
 {
   "temples": {
-    "legend": "Statuts"
+    "numbers": "Nombres",
+    "images": "Images"
   },
   "contact": {
     "option1": "Me contacter",
