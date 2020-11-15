@@ -433,8 +433,8 @@ const Page = page => {
   return (
     <Box
       pt={!section ? 4 : 0}
-      width="800px"
-      maxWidth="100%"
+      width="100%"
+      maxWidth="800px"
       dangerouslySetInnerHTML={{__html: datas.text_editor.formatted}}
       className={classes.editor}
     />
@@ -741,7 +741,7 @@ const Temples = ({path}) => {
             />
           </Bar>
 
-          <Box py={4}>
+          <Box py={4} width="100%" maxWidth="800px">
             {pages.map((page, idx) => (
               <Typography
                 key={idx}
@@ -880,8 +880,8 @@ const Temple = ({path}) => {
         <>
           <Typography variant="h6">{datas.text_name}</Typography>
           <Box
-            width="800px"
-            maxWidth="100%"
+            width="100%"
+            maxWidth="800px"
             dangerouslySetInnerHTML={{__html: datas.text_editor.formatted}}
             className={classes.editor}
           />
