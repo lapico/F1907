@@ -16,18 +16,22 @@ import Fade from '@material-ui/core/Fade';
 import IconButton from '@material-ui/core/IconButton';
 import Typography from '@material-ui/core/Typography';
 import TextField from '@material-ui/core/TextField';
+import Select from '@material-ui/core/Select';
+import Input from '@material-ui/core/Input';
+import Chip from '@material-ui/core/Chip';
 import Checkbox from '@material-ui/core/Checkbox/Checkbox';
 import Switch from '@material-ui/core/Switch';
+import MenuItem from '@material-ui/core/MenuItem';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import Button from '@material-ui/core/Button';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
+import InfoIcon from '@material-ui/icons/Info';
 import clsx from 'clsx';
 import {
   BrowserRouter,
   Switch as Routes,
   Route,
-  Redirect,
   NavLink,
   Link,
   useLocation,
@@ -69,17 +73,33 @@ const App = () => {
                 <Home datas={datas} />
               </Route>
               {pages.map(page => (
-                <Route key={page.path} path={page.path} exact>
+                <Route key={page.path} path={page.path}>
                   {getComponent(page)}
                 </Route>
               ))}
-              <Redirect to="/" />
             </Routes>
           </Layout>
         </DataContextProvider>
       </BrowserRouter>
     </ThemeProvider>
   );
+};
+
+const getComponent = page => {
+  switch (page.template) {
+    case 'multiple':
+      return <Multiple {...page} />;
+    case 'page':
+      return <Page {...page} />;
+    case 'contact':
+      return <Contact {...page} />;
+    case 'temples':
+      return <Temples {...page} />;
+    case 'temple':
+      return <Temple {...page} />;
+    default:
+      return null;
+  }
 };
 
 const border = {borderColor: 'divider', border: 1};
@@ -296,6 +316,7 @@ const LetterBox = ({children, size, width, height, limits, ...props}) => {
           width: width,
           height: height,
           transform: transform,
+          position: 'relative',
         }}
       >
         {children}
@@ -321,21 +342,6 @@ const Footer = () => {
 };
 
 // ——————————————————————————————————————————————————————————————————————————————————— PAGES
-
-const getComponent = page => {
-  switch (page.template) {
-    case 'multiple':
-      return <Multiple {...page} />;
-    case 'page':
-      return <Page {...page} />;
-    case 'contact':
-      return <Contact {...page} />;
-    case 'temples':
-      return <Temples {...page} />;
-    default:
-      return null;
-  }
-};
 
 const Home = ({datas}) => {
   const classes = useStyles();
@@ -384,7 +390,7 @@ const Home = ({datas}) => {
   );
 };
 
-const Multiple = ({path}) => {
+const Multiple = ({path, intro}) => {
   const [datas, setDatas] = useState();
 
   useEffect(() => {
@@ -397,10 +403,10 @@ const Multiple = ({path}) => {
 
   return (
     <>
-      {!!nav && <SubNav pages={pages} />}
-
+      {!!nav && !!pages && <SubNav pages={pages} />}
       <Box pt={4}>
-        {pages.map((page, i) => (
+        {intro}
+        {pages?.map((page, i) => (
           <div key={page.id} id={page.name}>
             {getComponent({
               ...page,
@@ -583,10 +589,16 @@ const Contact = page => {
 const Temples = ({path}) => {
   const classes = useStyles();
   const {t} = useTranslation();
+  const md = useMediaQuery(theme.breakpoints.down('md'));
   const size = useWindowSize();
   const [datas, setDatas] = useState();
-  const [numbers, setNumbers] = useState(true);
-  const [images, setImages] = useState(true);
+  const [legend, setLegend] = useState(false);
+  const [numbers, setNumbers] = useState(false);
+  const [images, setImages] = useState(false);
+  const [hovered, setHovered] = useState();
+  const {pathname} = useLocation();
+  const notRoot = matchPath(pathname, {path: `${path}:id`})?.params.id;
+  const [filters, setFilters] = useState([]);
 
   const height = useMemo(
     () => ({
@@ -600,13 +612,23 @@ const Temples = ({path}) => {
     (async () => setDatas(await read(`${path}?children=true`)))();
   }, []); // eslint-disable-line
 
+  useEffect(() => {
+    setHovered(null);
+  }, [notRoot]); // eslint-disable-line
+
   if (!datas) return null;
   const image = datas.image_map[0];
   const markers = datas.markers_map;
+  const pages = datas.children;
+  const keywords = datas.repeater_keywords.map(
+    keyword => keyword.fields.text_name
+  );
+  const states = datas.repeater_states.map(state => state.fields);
 
   const locations = markers.map(marker => ({
     x: (image.origin.width / 100) * marker.x - image.origin.width / 2 - 20,
     y: (image.origin.height / 100) * marker.y - image.origin.height / 2 - 20,
+    id: marker.data,
   }));
 
   const limits = markers.reduce(
@@ -621,90 +643,180 @@ const Temples = ({path}) => {
 
   return (
     <Box minHeight={height}>
-      <Bar>
-        <FormControlLabel
-          label={
-            <Typography className={classes.manier}>
-              {t('temples.numbers').toUpperCase()}
-            </Typography>
-          }
-          control={
-            <Switch
-              color="primary"
-              checked={numbers}
-              onChange={() => setNumbers(!numbers)}
-            />
-          }
-          labelPlacement="start"
-          edge="start"
-        />
-        <FormControlLabel
-          label={
-            <Typography className={classes.manier}>
-              {t('temples.images').toUpperCase()}
-            </Typography>
-          }
-          control={
-            <Switch
-              color="primary"
-              checked={images}
-              onChange={() => setImages(!images)}
-            />
-          }
-          labelPlacement="start"
-          edge="start"
-        />
-      </Bar>
-
-      <Box py={4} width={{md: '50%'}}>
-        {datas.children.map((item, idx) => (
-          <Typography key={idx} variant="h3">
-            <Box display="flex" alignItems="center">
-              {images && (
-                <img
-                  alt={item.name}
-                  src={item.image_temple[0].origin.httpUrl}
-                  style={{height: '1em', marginRight: '.1em'}}
-                />
-              )}
-              {numbers && (
-                <div
-                  style={{
-                    width: '1em',
-                    height: '1em',
-                    display: 'inline-block',
-                    padding: '.1em',
-                  }}
+      <Routes>
+        <Route path={path} exact>
+          <Bar>
+            <FormControlLabel
+              label={
+                <Box
+                  display="flex"
+                  flexDirection="row"
+                  flexWrap="nowrap"
+                  alignItems="center"
                 >
-                  <div
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      border: 'solid',
-                      borderRadius: '50%',
-                      borderWidth: '2px',
-                      borderColor: theme.palette.text.primary,
-                    }}
-                  >
-                    <span
+                  <IconButton size="small" disableRipple onClick={() => {}}>
+                    <InfoIcon color="disabled" />
+                  </IconButton>
+                  <Typography className={clsx(classes.label, classes.manier)}>
+                    {t('temples.legend').toUpperCase()}
+                  </Typography>
+                </Box>
+              }
+              control={
+                <Switch
+                  color="primary"
+                  checked={legend}
+                  onChange={() => setLegend(!legend)}
+                />
+              }
+              labelPlacement="start"
+              className={classes.tool}
+            />
+            <Box
+              display="flex"
+              flexDirection="row"
+              flexWrap="nowrap"
+              alignItems="center"
+              className={classes.tool}
+            >
+              <Typography className={clsx(classes.label, classes.manier)}>
+                {t('temples.filters').toUpperCase()}
+              </Typography>
+              <Select
+                multiple
+                value={filters}
+                onChange={e => setFilters(e.target.value)}
+                input={<Input />}
+                renderValue={selected => (
+                  <div className={classes.chips}>
+                    {selected.map(value => (
+                      <Chip
+                        key={value}
+                        label={value}
+                        className={classes.chip}
+                      />
+                    ))}
+                  </div>
+                )}
+                className={classes.select}
+              >
+                {keywords.map(name => (
+                  <MenuItem key={name} value={name}>
+                    {name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </Box>
+            <FormControlLabel
+              label={
+                <Typography className={clsx(classes.label, classes.manier)}>
+                  {t('temples.numbers').toUpperCase()}
+                </Typography>
+              }
+              control={
+                <Switch
+                  color="primary"
+                  checked={numbers}
+                  onChange={() => setNumbers(!numbers)}
+                />
+              }
+              labelPlacement="start"
+              className={classes.tool}
+            />
+            <FormControlLabel
+              label={
+                <Typography className={clsx(classes.label, classes.manier)}>
+                  {t('temples.images').toUpperCase()}
+                </Typography>
+              }
+              control={
+                <Switch
+                  color="primary"
+                  checked={images}
+                  onChange={() => setImages(!images)}
+                />
+              }
+              labelPlacement="start"
+              className={classes.tool}
+            />
+          </Bar>
+
+          <Box py={4}>
+            {pages.map((page, idx) => (
+              <Typography
+                key={idx}
+                variant={md ? 'h4' : 'h3'}
+                noWrap
+                to={page.path}
+                component={NavLink}
+                className={classes.nav}
+                onMouseEnter={() => setHovered(page.id)}
+                onMouseLeave={() => setHovered(null)}
+              >
+                <Box display="flex" alignItems="center">
+                  {images && (
+                    <img
+                      alt={page.name}
+                      src={page.image_temple[0].origin.httpUrl}
+                      style={{height: '1em', marginRight: '.1em'}}
+                    />
+                  )}
+                  {numbers && (
+                    <div
                       style={{
-                        fontSize: '.5em',
-                        lineHeight: '1em',
+                        width: '1em',
+                        height: '1em',
+                        display: 'inline-block',
+                        padding: '.1em',
                       }}
                     >
-                      {idx + 1}
-                    </span>
-                  </div>
-                </div>
-              )}
-              <span>{item.title}</span>
-            </Box>
-          </Typography>
+                      <div
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          border: 'solid',
+                          borderRadius: '50%',
+                          borderWidth: '1px',
+                          borderColor:
+                            hovered === page.id
+                              ? theme.palette.primary.main
+                              : theme.palette.text.primary,
+                          backgroundColor:
+                            hovered === page.id
+                              ? theme.palette.primary.main
+                              : theme.palette.background.default,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: '.5em',
+                            lineHeight: '1em',
+                            color:
+                              hovered === page.id
+                                ? theme.palette.background.default
+                                : theme.palette.text.primary,
+                          }}
+                        >
+                          {idx + 1}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  <span>{page.title}</span>
+                </Box>
+              </Typography>
+            ))}
+          </Box>
+        </Route>
+        {pages.map(page => (
+          <Route key={page.path} path={page.path} exact>
+            {getComponent(page)}
+          </Route>
         ))}
-      </Box>
+      </Routes>
 
       <LetterBox
         size={size}
@@ -716,15 +828,67 @@ const Temples = ({path}) => {
         <img alt="map" src={image.origin.httpUrl} />
         {locations.map((location, idx) => {
           const {x, y} = location;
-          const style = {transform: `translate(${x}px, ${y}px)`};
+          const unfocused = !!notRoot && notRoot !== pages[idx].name;
+          const focused = !!notRoot && notRoot === pages[idx].name;
+          const style = {
+            transform: `translate(${x}px, ${y}px)`,
+            borderRadius: '50%',
+            backgroundColor:
+              (focused || hovered === location.id) &&
+              theme.palette.primary.light,
+          };
+          if (unfocused) return null;
           return (
             <div key={idx} className={classes.dot} style={style}>
-              <div />
+              <div>
+                {numbers && !focused ? (
+                  <span
+                    style={{
+                      color:
+                        hovered === location.id &&
+                        theme.palette.background.default,
+                    }}
+                  >
+                    {idx + 1}
+                  </span>
+                ) : (
+                  <div />
+                )}
+              </div>
             </div>
           );
         })}
       </LetterBox>
     </Box>
+  );
+};
+
+const Temple = ({path}) => {
+  const classes = useStyles();
+  const [datas, setDatas] = useState();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    (async () => setDatas(await read(`${path}?children=true`)))();
+  }, []); // eslint-disable-line
+
+  if (!datas) return null;
+
+  return (
+    <Multiple
+      intro={
+        <>
+          <Typography variant="h6">{datas.text_name}</Typography>
+          <Box
+            width="800px"
+            maxWidth="100%"
+            dangerouslySetInnerHTML={{__html: datas.text_editor.formatted}}
+            className={classes.editor}
+          />
+        </>
+      }
+      {...datas}
+    />
   );
 };
 
@@ -765,6 +929,7 @@ const useStyles = makeStyles(theme => ({
   },
   nav: {
     textDecoration: 'none',
+    color: theme.palette.text.primary,
     '&:hover': {
       color: theme.palette.primary.main,
     },
@@ -777,6 +942,13 @@ const useStyles = makeStyles(theme => ({
   bar: {
     position: 'sticky',
     top: 0,
+  },
+  tool: {
+    minHeight: theme.spacing(6),
+    marginLeft: theme.spacing(6),
+  },
+  select: {
+    minWidth: '48px',
   },
   expand: {
     transform: 'rotate(0deg)',
@@ -791,6 +963,16 @@ const useStyles = makeStyles(theme => ({
   expandOpen: {
     transform: 'rotate(180deg)',
   },
+  label: {
+    marginRight: theme.spacing(),
+  },
+  chips: {
+    display: 'flex',
+    flexWrap: 'wrap',
+  },
+  chip: {
+    margin: 2,
+  },
   letterbox: {
     pointerEvents: 'none',
   },
@@ -798,11 +980,20 @@ const useStyles = makeStyles(theme => ({
     position: 'absolute',
     top: '50%',
     left: '50%',
-    width: theme.spacing(5),
-    height: theme.spacing(5),
-    padding: theme.spacing(1.75),
     pointerEvents: 'all',
     '& > div': {
+      width: theme.spacing(5),
+      height: theme.spacing(5),
+      padding: theme.spacing(1.75),
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    '& > div > span': {
+      color: theme.palette.text.secondary,
+      fontSize: '1.4em',
+    },
+    '& > div > div': {
       width: '100%',
       height: '100%',
       borderRadius: '50%',
