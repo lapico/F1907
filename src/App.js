@@ -1,10 +1,4 @@
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useMemo,
-} from 'react';
+import React, {useState, useEffect, useMemo, useCallback} from 'react';
 import {ThemeProvider, makeStyles} from '@material-ui/core/styles';
 import CssBaseline from '@material-ui/core/CssBaseline';
 import useMediaQuery from '@material-ui/core/useMediaQuery';
@@ -24,6 +18,8 @@ import Switch from '@material-ui/core/Switch';
 import MenuItem from '@material-ui/core/MenuItem';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import Button from '@material-ui/core/Button';
+import Popper from '@material-ui/core/Popper';
+import Paper from '@material-ui/core/Paper';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import InfoIcon from '@material-ui/icons/Info';
@@ -66,20 +62,18 @@ const App = () => {
     <ThemeProvider theme={theme}>
       <BrowserRouter basename={process.env.REACT_APP_BASE_PATH}>
         <CssBaseline />
-        <DataContextProvider>
-          <Layout datas={datas}>
-            <Routes>
-              <Route path="/" exact>
-                <Home datas={datas} />
+        <Layout datas={datas}>
+          <Routes>
+            <Route path="/" exact>
+              <Home datas={datas} />
+            </Route>
+            {pages.map(page => (
+              <Route key={page.path} path={page.path}>
+                {getComponent(page)}
               </Route>
-              {pages.map(page => (
-                <Route key={page.path} path={page.path}>
-                  {getComponent(page)}
-                </Route>
-              ))}
-            </Routes>
-          </Layout>
-        </DataContextProvider>
+            ))}
+          </Routes>
+        </Layout>
       </BrowserRouter>
     </ThemeProvider>
   );
@@ -232,9 +226,8 @@ const SubNav = ({pages}) => {
   );
 };
 
-const Bar = ({content, children}) => {
+const Bar = ({open, setOpen, content, children}) => {
   const classes = useStyles();
-  const [open, setOpen] = useState(false);
 
   return (
     <Box className={classes.bar}>
@@ -259,11 +252,11 @@ const Bar = ({content, children}) => {
       <Collapse in={open} timeout="auto" unmountOnExit>
         <Fade in={open} {...(open ? {timeout: 1000} : {})}>
           <Box
-            {...borderB}
             p={2}
             display="flex"
             justifyContent="flex-end"
             flexWrap="wrap"
+            {...borderB}
           >
             {children}
           </Box>
@@ -592,13 +585,23 @@ const Temples = ({path}) => {
   const md = useMediaQuery(theme.breakpoints.down('md'));
   const size = useWindowSize();
   const [datas, setDatas] = useState();
+  const [open, setOpen] = useState(false);
   const [legend, setLegend] = useState(false);
+  const [popper, setPopper] = useState(null);
   const [numbers, setNumbers] = useState(false);
   const [images, setImages] = useState(false);
   const [hovered, setHovered] = useState();
   const {pathname} = useLocation();
   const notRoot = matchPath(pathname, {path: `${path}:id`})?.params.id;
   const [filters, setFilters] = useState([]);
+
+  const filtered = useCallback(
+    (keywords = []) =>
+      keywords.filter(keyword =>
+        filters.find(filter => filter === keyword.fields.text_name)
+      ).length === filters.length,
+    [filters]
+  );
 
   const height = useMemo(
     () => ({
@@ -614,7 +617,12 @@ const Temples = ({path}) => {
 
   useEffect(() => {
     setHovered(null);
+    setPopper(null);
   }, [notRoot]); // eslint-disable-line
+
+  useEffect(() => {
+    if (!open) setPopper(null);
+  }, [open]); // eslint-disable-line
 
   if (!datas) return null;
   const image = datas.image_map[0];
@@ -645,33 +653,7 @@ const Temples = ({path}) => {
     <Box minHeight={height}>
       <Routes>
         <Route path={path} exact>
-          <Bar>
-            <FormControlLabel
-              label={
-                <Box
-                  display="flex"
-                  flexDirection="row"
-                  flexWrap="nowrap"
-                  alignItems="center"
-                >
-                  <IconButton size="small" disableRipple onClick={() => {}}>
-                    <InfoIcon color="disabled" />
-                  </IconButton>
-                  <Typography className={clsx(classes.label, classes.manier)}>
-                    {t('temples.legend').toUpperCase()}
-                  </Typography>
-                </Box>
-              }
-              control={
-                <Switch
-                  color="primary"
-                  checked={legend}
-                  onChange={() => setLegend(!legend)}
-                />
-              }
-              labelPlacement="start"
-              className={classes.tool}
-            />
+          <Bar open={open} setOpen={setOpen}>
             <Box
               display="flex"
               flexDirection="row"
@@ -707,6 +689,57 @@ const Temples = ({path}) => {
                 ))}
               </Select>
             </Box>
+            <Popper
+              open={!!popper}
+              anchorEl={popper}
+              placement="bottom"
+              disablePortal
+              transition
+            >
+              {({TransitionProps}) => (
+                <Fade {...TransitionProps} timeout={350}>
+                  <Paper className={classes.legend}>
+                    {states.map(state => (
+                      <Typography>
+                        <b style={{color: state.text_color}}>
+                          {state.text_name}
+                        </b>
+                      </Typography>
+                    ))}
+                  </Paper>
+                </Fade>
+              )}
+            </Popper>
+            <FormControlLabel
+              label={
+                <Box
+                  display="flex"
+                  flexDirection="row"
+                  flexWrap="nowrap"
+                  alignItems="center"
+                >
+                  <IconButton
+                    size="small"
+                    disableRipple
+                    onClick={e => setPopper(!popper ? e.currentTarget : null)}
+                  >
+                    <InfoIcon color="disabled" />
+                  </IconButton>
+                  <Typography className={clsx(classes.label, classes.manier)}>
+                    {t('temples.legend').toUpperCase()}
+                  </Typography>
+                </Box>
+              }
+              control={
+                <Switch
+                  color="primary"
+                  checked={legend}
+                  onChange={() => setLegend(!legend)}
+                />
+              }
+              labelPlacement="start"
+              className={classes.tool}
+            />
             <FormControlLabel
               label={
                 <Typography className={clsx(classes.label, classes.manier)}>
@@ -742,73 +775,97 @@ const Temples = ({path}) => {
           </Bar>
 
           <Box py={4} width="100%" maxWidth="800px">
-            {pages.map((page, idx) => (
-              <Typography
-                key={idx}
-                variant={md ? 'h4' : 'h3'}
-                noWrap
-                to={page.path}
-                component={NavLink}
-                className={classes.nav}
-                onMouseEnter={() => setHovered(page.id)}
-                onMouseLeave={() => setHovered(null)}
-              >
-                <Box display="flex" alignItems="center">
-                  {images && (
-                    <img
-                      alt={page.name}
-                      src={page.image_temple[0].origin.httpUrl}
-                      style={{height: '1em', marginRight: '.1em'}}
-                    />
-                  )}
-                  {numbers && (
-                    <div
-                      style={{
-                        width: '1em',
-                        height: '1em',
-                        display: 'inline-block',
-                        padding: '.1em',
-                      }}
-                    >
+            {pages.map((page, idx) => {
+              const active = filtered(page.page_keywords);
+              const state = page.page_state.fields;
+              return (
+                <Typography
+                  key={idx}
+                  variant={md ? 'h4' : 'h3'}
+                  noWrap
+                  to={page.path}
+                  component={NavLink}
+                  className={classes.nav}
+                  onMouseEnter={() => active && setHovered(page.id)}
+                  onMouseLeave={() => setHovered(null)}
+                >
+                  <Box display="flex" alignItems="center">
+                    {images && (
+                      <img
+                        alt={page.name}
+                        src={page.image_temple[0].origin.httpUrl}
+                        style={{
+                          height: '1em',
+                          marginRight: '.1em',
+                          opacity: active ? 1 : 0.3,
+                        }}
+                      />
+                    )}
+                    {numbers && (
                       <div
                         style={{
-                          width: '100%',
-                          height: '100%',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          border: 'solid',
-                          borderRadius: '50%',
-                          borderWidth: '1px',
-                          borderColor:
-                            hovered === page.id
-                              ? theme.palette.primary.main
-                              : theme.palette.text.primary,
-                          backgroundColor:
-                            hovered === page.id
-                              ? theme.palette.primary.main
-                              : theme.palette.background.default,
+                          width: '1em',
+                          height: '1em',
+                          display: 'inline-block',
+                          padding: '.1em',
                         }}
                       >
-                        <span
+                        <div
                           style={{
-                            fontSize: '.5em',
-                            lineHeight: '1em',
-                            color:
+                            width: '100%',
+                            height: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            border: 'solid',
+                            borderRadius: '50%',
+                            borderWidth: '1px',
+                            borderColor: active
+                              ? hovered === page.id
+                                ? theme.palette.primary.main
+                                : legend
+                                ? state.text_color
+                                : theme.palette.text.primary
+                              : theme.palette.divider,
+                            backgroundColor:
                               hovered === page.id
-                                ? theme.palette.background.default
-                                : theme.palette.text.primary,
+                                ? theme.palette.primary.main
+                                : theme.palette.background.default,
                           }}
                         >
-                          {idx + 1}
-                        </span>
+                          <span
+                            style={{
+                              fontSize: '.5em',
+                              lineHeight: '1em',
+                              color: active
+                                ? hovered === page.id
+                                  ? theme.palette.background.default
+                                  : legend
+                                  ? state.text_color
+                                  : theme.palette.text.primary
+                                : theme.palette.divider,
+                            }}
+                          >
+                            {idx + 1}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                  <span>{page.title}</span>
-                </Box>
-              </Typography>
-            ))}
+                    )}
+                    <span
+                      style={{
+                        color: active
+                          ? legend
+                            ? state.text_color
+                            : theme.palette.text.primary
+                          : theme.palette.divider,
+                      }}
+                    >
+                      {page.title}
+                    </span>
+                  </Box>
+                </Typography>
+              );
+            })}
           </Box>
         </Route>
         {pages.map(page => (
@@ -828,8 +885,10 @@ const Temples = ({path}) => {
         <img alt="map" src={image.origin.httpUrl} />
         {locations.map((location, idx) => {
           const {x, y} = location;
-          const unfocused = !!notRoot && notRoot !== pages[idx].name;
-          const focused = !!notRoot && notRoot === pages[idx].name;
+          const page = pages[idx];
+          const focused = !!notRoot && notRoot === page?.name;
+          const active = !!notRoot || filtered(page.page_keywords);
+          const state = page.page_state.fields;
           const style = {
             transform: `translate(${x}px, ${y}px)`,
             borderRadius: '50%',
@@ -837,7 +896,8 @@ const Temples = ({path}) => {
               (focused || hovered === location.id) &&
               theme.palette.primary.light,
           };
-          if (unfocused) return null;
+          if (!active) return null;
+          if (!!notRoot && !focused) return null;
           return (
             <div key={idx} className={classes.dot} style={style}>
               <div>
@@ -852,7 +912,13 @@ const Temples = ({path}) => {
                     {idx + 1}
                   </span>
                 ) : (
-                  <div />
+                  <div
+                    style={{
+                      backgroundColor: legend
+                        ? state.text_color
+                        : theme.palette.divider,
+                    }}
+                  />
                 )}
               </div>
             </div>
@@ -964,6 +1030,7 @@ const useStyles = makeStyles(theme => ({
     transform: 'rotate(180deg)',
   },
   label: {
+    marginLeft: theme.spacing(),
     marginRight: theme.spacing(),
   },
   chips: {
@@ -972,6 +1039,10 @@ const useStyles = makeStyles(theme => ({
   },
   chip: {
     margin: 2,
+  },
+  legend: {
+    marginTop: theme.spacing(2),
+    padding: theme.spacing(2),
   },
   letterbox: {
     pointerEvents: 'none',
@@ -997,7 +1068,6 @@ const useStyles = makeStyles(theme => ({
       width: '100%',
       height: '100%',
       borderRadius: '50%',
-      backgroundColor: theme.palette.divider,
     },
   },
   contact: {
@@ -1111,15 +1181,4 @@ const useWindowSize = () => {
   }, []);
 
   return windowSize;
-};
-
-// ——————————————————————————————————————————————————————————————————————————————————— STORE
-
-const DataContext = createContext();
-const useData = () => useContext(DataContext);
-const DataContextProvider = ({children}) => {
-  const hello = 'hello';
-  return (
-    <DataContext.Provider value={{hello}}>{children}</DataContext.Provider>
-  );
 };

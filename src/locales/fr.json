@@ -1,9 +1,9 @@
 {
   "temples": {
-    "legend": "Légende",
+    "filters": "Filtres",
+    "legend": "Statuts",
     "numbers": "Nombres",
-    "images": "Images",
-    "filters": "Filtres"
+    "images": "Images"
   },
   "contact": {
     "option1": "Me contacter",
