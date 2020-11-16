@@ -689,27 +689,6 @@ const Temples = ({path}) => {
                 ))}
               </Select>
             </Box>
-            <Popper
-              open={!!popper}
-              anchorEl={popper}
-              placement="bottom"
-              disablePortal
-              transition
-            >
-              {({TransitionProps}) => (
-                <Fade {...TransitionProps} timeout={350}>
-                  <Paper className={classes.legend}>
-                    {states.map(state => (
-                      <Typography>
-                        <b style={{color: state.text_color}}>
-                          {state.text_name}
-                        </b>
-                      </Typography>
-                    ))}
-                  </Paper>
-                </Fade>
-              )}
-            </Popper>
             <FormControlLabel
               label={
                 <Box
@@ -740,6 +719,34 @@ const Temples = ({path}) => {
               labelPlacement="start"
               className={classes.tool}
             />
+            <Popper
+              open={!!popper}
+              anchorEl={popper}
+              placement="bottom"
+              disablePortal
+              transition
+            >
+              {({TransitionProps}) => (
+                <Fade {...TransitionProps} timeout={350}>
+                  <Paper className={classes.legend}>
+                    <Typography
+                      align="center"
+                      color="textSecondary"
+                      gutterBottom
+                    >
+                      {t('temples.label')}
+                    </Typography>
+                    {states.map(state => (
+                      <Typography align="center">
+                        <b style={{color: state.text_color}}>
+                          {state.text_name}
+                        </b>
+                      </Typography>
+                    ))}
+                  </Paper>
+                </Fade>
+              )}
+            </Popper>
             <FormControlLabel
               label={
                 <Typography className={clsx(classes.label, classes.manier)}>
@@ -819,7 +826,7 @@ const Temples = ({path}) => {
                             justifyContent: 'center',
                             border: 'solid',
                             borderRadius: '50%',
-                            borderWidth: '1px',
+                            borderWidth: '2px',
                             borderColor: active
                               ? hovered === page.id
                                 ? theme.palette.primary.main
