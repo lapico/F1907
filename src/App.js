@@ -85,8 +85,8 @@ const getComponent = page => {
   switch (page.template) {
     case 'multiple':
       return <Multiple {...page} />;
-    case 'page':
-      return <Page {...page} />;
+    case 'text':
+      return <Text {...page} />;
     case 'contact':
       return <Contact {...page} />;
     case 'temples':
@@ -414,7 +414,7 @@ const Multiple = ({path, intro}) => {
   );
 };
 
-const Page = page => {
+const Text = page => {
   const classes = useStyles();
   const [datas, setDatas] = useState();
   const {section = false, path} = page;
