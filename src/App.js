@@ -158,7 +158,7 @@ const Nav = ({pages}) => {
       display="flex"
       flexDirection="column"
       alignItems="flex-end"
-      pt={{xs: 2, md: 8}}
+      pt={{xs: 2, md: 4}}
     >
       {pages.map(page => (
         <Typography
@@ -863,7 +863,9 @@ const Temples = ({path}) => {
                     <span
                       style={{
                         color: active
-                          ? legend
+                          ? hovered === page.id
+                            ? theme.palette.primary.main
+                            : legend
                             ? state.text_color
                             : theme.palette.text.primary
                           : theme.palette.divider,
@@ -1006,7 +1008,7 @@ const useStyles = makeStyles(theme => ({
     },
   },
   logo: {
-    width: theme.spacing(25),
+    width: theme.spacing(20),
     maxWidth: '100%',
   },
   biglogo: {
