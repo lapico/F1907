@@ -23,6 +23,7 @@ import Paper from '@material-ui/core/Paper';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import InfoIcon from '@material-ui/icons/Info';
+import CloseIcon from '@material-ui/icons/Close';
 import clsx from 'clsx';
 import {
   BrowserRouter,
@@ -31,6 +32,7 @@ import {
   NavLink,
   Link,
   useLocation,
+  useHistory,
   matchPath,
 } from 'react-router-dom';
 import {useTranslation} from 'react-i18next';
@@ -936,9 +938,11 @@ const Temples = ({path}) => {
   );
 };
 
-const Temple = ({path}) => {
+const Temple = page => {
   const classes = useStyles();
+  const history = useHistory();
   const [datas, setDatas] = useState();
+  const {path, parentPath} = page;
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -951,7 +955,24 @@ const Temple = ({path}) => {
     <Multiple
       intro={
         <>
-          <Typography variant="h6">{datas.text_name}</Typography>
+          <Box
+            width="100%"
+            display="flex"
+            flexDirection="row"
+            flexWrap="nowrap"
+            alignItems="center"
+            justifyContent="space-between"
+          >
+            <Typography variant="h6">{datas.text_name}</Typography>
+            <IconButton
+              size="small"
+              disableRipple
+              color="inherit"
+              onClick={() => history.push(parentPath)}
+            >
+              <CloseIcon />
+            </IconButton>
+          </Box>
           <Box
             width="100%"
             maxWidth="800px"
